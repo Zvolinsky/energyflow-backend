@@ -2,5 +2,45 @@
   "type": "module",
   "dependencies": {
     "axios": "^1.13.2"
+  },
+  "name": "energyflow-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
+    "lint": "eslint.",
+    "format": "prettier --write."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zvolinsky/energyflow-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Zvolinsky/energyflow-backend/issues"
+  },
+  "homepage": "https://github.com/Zvolinsky/energyflow-backend#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.0.7",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^17.0.0",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }
