@@ -1,13 +1,11 @@
-import axios from "axios";
+import express from 'express'
+import { getEnergySummary } from '@/controllers/carbonController.ts'
 
-axios
-  .get("https://api.carbonintensity.org.uk/intensity/date")
-  .then(function (response) {
-    console.log(response);
-  })
-  .catch(function (error) {
-    console.log(error);
-  })
-  .finally(function () {
-    // always executed
-  });
+const app = express()
+
+app.listen(3000, () => {
+    console.log('Server is running on port 3000')
+})
+app.get('/api/get-energy-mix', getEnergySummary)
+
+export default app
