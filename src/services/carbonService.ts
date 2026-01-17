@@ -1,17 +1,20 @@
-import { format, addDays, startOfDay, endOfDay } from 'date-fns'
+import { format, addDays, addHours } from 'date-fns'
 import { getGenerationData } from '@/clients/carbonClient.ts'
 import {
     type CarbonResponseDataItem,
     type DailyEnergySummary,
     type GenerationMix,
+    type OptimalWindowResponse,
 } from '@/interfaces/carbon.interface.ts'
 import { isCleanEnergy, roundToTwo } from '@/utils/energyUtils.ts'
 
 const getThreeDaySummary = async (): Promise<DailyEnergySummary[]> => {
     // Dates strings - from today to day after tomorrow
-    const today = new Date()
-    const startOfDayString = startOfDay(today).toISOString()
-    const endOfDayString = endOfDay(addDays(today, 2)).toISOString()
+    const today = addHours(new Date(), 2)
+
+    // Formatting to ISO strings for CET timezone
+    const startOfDayString = `${format(today, 'yyyy-MM-dd')}T00:00:00.000Z`
+    const endOfDayString = `${format(addDays(today, 2), 'yyyy-MM-dd')}T23:59:59.999Z`
 
     // Retrieving raw data from Carbon Intensity API
     const rawData = await getGenerationData(startOfDayString, endOfDayString)
@@ -60,4 +63,64 @@ const getThreeDaySummary = async (): Promise<DailyEnergySummary[]> => {
     })
 }
 
-export { getThreeDaySummary }
+const getOptimalChargingWindow = async (
+    hours: number
+): Promise<OptimalWindowResponse> => {
+    // Dates strings - forecast for next 48 hours
+    const now = new Date()
+
+    // Dodajemy 1 godzinę do obecnego czasu, aby skompensować przesunięcie UTC
+    const startTime = addHours(now, 1)
+    // End time to 48 godzin od skorygowanego czasu startu
+    const endTime = addHours(startTime, 48)
+
+    const startTimeString = startTime.toISOString()
+    const endTimeString = endTime.toISOString()
+
+    const rawData = await getGenerationData(startTimeString, endTimeString)
+    const intervals = rawData.data
+
+    // Changing hours to intervals (1 hour -> 2 intervals)
+    const windowSize = hours * 2
+
+    let optimalStartIndex = 0
+    let maxCleanEnergy = -1
+
+    // WINDOW SLIDING: Moving through intervals array
+    // Finding the window with the highest average clean energy
+
+    for (let i = 0; i <= intervals.length - windowSize; i++) {
+        let currentWindowSum = 0
+
+        //Summing up clean energy in the current window
+        for (let j = i; j < i + windowSize; j++) {
+            const interval = intervals[j]
+            if (!interval) continue
+            const intervalCleanEnergy = interval.generationmix
+                .filter((mix) => isCleanEnergy(mix.fuel))
+                .reduce((sum, mix) => sum + mix.perc, 0)
+            currentWindowSum += intervalCleanEnergy
+        }
+
+        // If the current window has more clean energy, update optimal window
+        if (currentWindowSum > maxCleanEnergy) {
+            maxCleanEnergy = currentWindowSum
+            optimalStartIndex = i
+        }
+    }
+
+    // Getting results
+    const optimalWindow = intervals.slice(
+        optimalStartIndex,
+        optimalStartIndex + windowSize
+    )
+
+    const averageCleanEnergy = maxCleanEnergy / windowSize
+    return {
+        start: optimalWindow[0]?.from as string,
+        end: optimalWindow[optimalWindow.length - 1]?.to as string,
+        averageCleanEnergy: roundToTwo(averageCleanEnergy),
+    }
+}
+
+export { getOptimalChargingWindow, getThreeDaySummary }

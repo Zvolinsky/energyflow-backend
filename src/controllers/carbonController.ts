@@ -1,5 +1,8 @@
 import { type Request, type Response } from 'express'
-import { getThreeDaySummary } from '@/services/carbonService.ts'
+import {
+    getThreeDaySummary,
+    getOptimalChargingWindow,
+} from '@/services/carbonService.ts'
 
 const getEnergySummary = async (req: Request, res: Response) => {
     try {
@@ -12,4 +15,17 @@ const getEnergySummary = async (req: Request, res: Response) => {
     }
 }
 
-export { getEnergySummary }
+const getOptimalWindow = async (req: Request, res: Response) => {
+    try {
+        const optimalWindow = await getOptimalChargingWindow(
+            parseInt(req.params.hours as string)
+        )
+        res.json(optimalWindow)
+    } catch (err) {
+        res.status(500).json({
+            error: err,
+        })
+    }
+}
+
+export { getEnergySummary, getOptimalWindow }
