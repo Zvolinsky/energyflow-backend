@@ -3,6 +3,7 @@ import {
     getThreeDaySummary,
     getOptimalChargingWindow,
 } from '@/services/carbonService.ts'
+import { chargingHoursSchema } from '@/validation/validationSchema.ts'
 
 const getEnergySummary = async (req: Request, res: Response) => {
     try {
@@ -17,9 +18,18 @@ const getEnergySummary = async (req: Request, res: Response) => {
 
 const getOptimalWindow = async (req: Request, res: Response) => {
     try {
-        const optimalWindow = await getOptimalChargingWindow(
+        const validation = chargingHoursSchema.safeParse(
             parseInt(req.params.hours as string)
         )
+
+        if (!validation.success) {
+            return res.status(400).json({
+                error: validation.error._zod.def[0]?.message,
+            })
+        }
+
+        const optimalWindow = await getOptimalChargingWindow(validation.data)
+
         res.json(optimalWindow)
     } catch (err) {
         res.status(500).json({
